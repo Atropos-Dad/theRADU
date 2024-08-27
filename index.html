@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The RADU</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 0;
+            position: relative;
+        }
+        .left-column, .right-column {
+            padding: 20px;
+            background-color: #2a2a2a;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: auto;
+        }
+        .left-column {
+            justify-content: center;
+            text-align: center;
+            flex: 1;
+            min-width: 300px;
+        }
+        .right-column {
+            justify-content: flex-start;
+            width: 300px;
+            transition: width 0.3s ease, padding 0.3s ease;
+            flex: 0 0 auto;
+        }
+        .right-column.hidden {
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .right-column-content {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        h3 {
+            color: #4a90e2;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.4;
+        }
+        .acronym {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #66b3ff;
+        }
+        canvas {
+            border: 1px solid #4a90e2;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            max-width: 100%;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 300px;
+        }
+        label {
+            margin-bottom: 5px;
+            align-self: center;
+        }
+        input[type="number"] {
+            background-color: #3a3a3a;
+            border: 1px solid #4a90e2;
+            color: #f0f0f0;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 20px;
+            width: 100%;
+            font-size: 16px;
+            text-align: center;
+        }
+        input[type="submit"] {
+            background-color: #4a90e2;
+            color: #f0f0f0;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            font-size: 16px;
+            width: 100%;
+        }
+        input[type="submit"]:hover {
+            background-color: #3a7fcf;
+        }
+        input[type="submit"]:active {
+            transform: scale(0.98);
+        }
+        .placeholder-text {
+            font-size: 1.2em;
+            text-align: center;
+            color: #888;
+        }
+        .divider {
+            width: 10px;
+            background-color: #4a90e2;
+            cursor: ew-resize;
+            flex-shrink: 0;  
+            transition: background-color 0.3s ease;
+        }
+        .divider:hover, .divider:active {
+            background-color: #66b3ff; 
+        }
+        .toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #4a90e2;
+            color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        #compareBtn {
+            background-color: #4a90e2;
+            color: #f0f0f0;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            font-size: 16px;
+            width: 100%;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+        #compareBtn:hover {
+            background-color: #3a7fcf;
+        }
+        #compareBtn:active {
+            transform: scale(0.98);
+        }
+        #compareBtn.active {
+            background-color: #2a5f9f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-column">
+            <h3>The <span class="acronym">R</span>adius and <span class="acronym">A</span>rea <span class="acronym">D</span>istinction <span class="acronym">U</span>tility Calculator</h3>
+            
+            <canvas id="myCanvas" width="1200" height="500"></canvas>
+            
+            <form action="/submit" method="post">
+                <label for="number1">Big pizza size (Radius|in):</label>
+                <input type="number" id="number1" name="number1">
+                
+                <label for="number2">Small pizza(s) size (Radius|in):</label>
+                <input type="number" id="number2" name="number2">
+
+                <label for="number3">Number of small pizzas:</label>
+                <input type="number" id="number3" name="number3">
+                
+                <input type="submit" value="Submit">
+            </form>
+            
+            <button id="compareBtn">Compare Areas</button>
+        </div>
+        <div class="divider"></div>
+        <div class="right-column">
+            <div class="right-column-content">
+                <p class="placeholder-text">Please enter pizza details for advanced calculations</p>
+            </div>
+        </div>
+        <button class="toggle-btn">Toggle Right Column</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawCircle(radius, originX, originY, circle_width, scale, showLabel = true) {
+            ctx.beginPath();
+            ctx.arc(originX, originY, radius * 25 * scale, 0, 2 * Math.PI);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = circle_width;
+            ctx.stroke();
+
+            if (showLabel) {
+                // draw an arrow from the center of the circle to the edge
+                const buffer = 5 + circle_width / 2;
+                ctx.beginPath();
+                ctx.moveTo(originX, originY);
+                ctx.lineTo(originX + (radius * 25 * scale) - buffer, originY);
+                ctx.lineTo(originX + (radius * 25 * scale) - buffer - 10, originY - 10);
+                ctx.moveTo(originX + (radius * 25 * scale) - buffer, originY);
+                ctx.lineTo(originX + (radius * 25 * scale) - buffer - 10, originY + 10);
+                ctx.strokeStyle = "#ff0000";
+                ctx.lineWidth = 5;
+                ctx.stroke();
+
+                // place text in the center of the circle
+                ctx.font = `${25 * scale}px Arial`;
+                ctx.fillStyle = "#ffffff";
+                ctx.textAlign = "center";
+                ctx.fillText(
+                    "Radius: " + radius,
+                    (originX + (originX + (radius * 25 * scale) - buffer)) / 2,
+                    originY - 25 * scale
+                );
+            }
+        }
+        
+        function drawBigPizza(radius, scale) {
+            const originX = canvas.width / 4;
+            const originY = canvas.height / 2;
+            drawCircle(radius, originX, originY, 15 * scale, scale);
+        }
+        
+        function drawSmallPizzas(radius, numberOfCircles, scale) {
+            const rightCanvasWidth = canvas.width / 2;
+            const rightCanvasHeight = canvas.height;
+            const startX = canvas.width / 2;
+
+            const scaledRadius = radius * 25 * scale;
+            const gap = 10 * scale; // Scale the gap between pizzas
+
+            // Limit the number of pizzas to display
+            const maxDisplayPizzas = 100;
+            const pizzasToShow = Math.min(numberOfCircles, maxDisplayPizzas);
+
+            const maxColumns = Math.floor(rightCanvasWidth / (scaledRadius * 2 + gap));
+            const rows = Math.ceil(pizzasToShow / maxColumns);
+            const columns = Math.min(pizzasToShow, maxColumns);
+
+            const totalWidth = columns * scaledRadius * 2 + (columns - 1) * gap;
+            const horizontalOffset = (rightCanvasWidth - totalWidth) / 2;
+            const verticalGap = (rightCanvasHeight - rows * scaledRadius * 2) / (rows + 1);
+
+            for (let i = 0; i < pizzasToShow; i++) {
+                const row = Math.floor(i / columns);
+                const col = i % columns;
+
+                const originX = startX + horizontalOffset + col * (scaledRadius * 2 + gap) + scaledRadius;
+                const originY = verticalGap + row * (scaledRadius * 2 + verticalGap) + scaledRadius;
+
+                drawCircle(radius, originX, originY, 2 * scale, scale, false);
+            }
+
+            // Add labels
+            ctx.font = `${20 * scale}px Arial`;
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.fillText(
+                `Small Pizza Radius: ${radius}"`,
+                canvas.width * 0.75,
+                canvas.height - 60 * scale
+            );
+            ctx.fillText(
+                `Total Small Pizzas: ${numberOfCircles}`,
+                canvas.width * 0.75,
+                canvas.height - 30 * scale
+            );
+
+            // If we're not showing all pizzas, add a note
+            if (pizzasToShow < numberOfCircles) {
+                ctx.fillText(
+                    `(Showing ${pizzasToShow} out of ${numberOfCircles} pizzas)`,
+                    canvas.width * 0.75,
+                    canvas.height - 90 * scale
+                );
+            }
+        }
+        
+        function drawSplitCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw vertical line to split the canvas
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = "#4a90e2";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Add labels
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "#4a90e2";
+            ctx.textAlign = "center";
+            ctx.fillText("Big Pizza", canvas.width / 4, 30);
+            ctx.fillText("Small Pizzas", 3 * canvas.width / 4, 30);
+        }
+        
+        function calculateScale(bigRadius, smallRadius, smallCount) {
+            const leftCanvasWidth = canvas.width / 2;
+            const leftCanvasHeight = canvas.height;
+            const rightCanvasWidth = canvas.width / 2;
+            const rightCanvasHeight = canvas.height;
+
+            const bigPizzaArea = Math.PI * bigRadius * bigRadius;
+            const maxDisplayPizzas = 100;
+            const smallPizzasArea = Math.PI * smallRadius * smallRadius * Math.min(smallCount, maxDisplayPizzas);
+
+            const maxRadius = Math.max(bigRadius, smallRadius);
+            const totalArea = bigPizzaArea + smallPizzasArea;
+
+            const bigPizzaScale = Math.sqrt((leftCanvasWidth * leftCanvasHeight * 0.8) / bigPizzaArea);
+            const smallPizzasScale = Math.sqrt((rightCanvasWidth * rightCanvasHeight * 0.8) / smallPizzasArea);
+
+            // Use the smaller scale to maintain relative sizes
+            const baseScale = Math.min(bigPizzaScale, smallPizzasScale);
+
+            // Adjust the scale based on the maximum radius to fit within the canvas
+            const maxAllowedRadius = Math.min(leftCanvasWidth, leftCanvasHeight, rightCanvasWidth, rightCanvasHeight) / 2 * 0.8;
+            const radiusAdjustment = maxAllowedRadius / (maxRadius * baseScale * 25);
+
+            // Remove the cap and return the calculated scale
+            return baseScale * radiusAdjustment;
+        }
+
+        document.querySelector("form").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const bigPizzaRadius = parseFloat(document.getElementById("number1").value);
+            const smallPizzaRadius = parseFloat(document.getElementById("number2").value);
+            const numberOfSmallPizzas = parseFloat(document.getElementById("number3").value);
+
+        
+            if (!isNaN(bigPizzaRadius) && !isNaN(smallPizzaRadius) && !isNaN(numberOfSmallPizzas)) {
+                if (smallPizzaRadius > bigPizzaRadius) {
+                    alert("The radius of small pizzas cannot be larger than the big pizza.");
+                    return;
+                }
+                const scale = calculateScale(bigPizzaRadius, smallPizzaRadius, numberOfSmallPizzas);
+                if (isComparing) {
+                    drawComparisonCircles(bigPizzaRadius, smallPizzaRadius, numberOfSmallPizzas);
+                } else {
+                    drawSplitCanvas();
+                    drawBigPizza(bigPizzaRadius, scale);
+                    drawSmallPizzas(smallPizzaRadius, numberOfSmallPizzas, scale);
+                }
+                displayMath(bigPizzaRadius, smallPizzaRadius, numberOfSmallPizzas);
+                
+            }
+        });
+
+        // Resizable columns
+        const divider = document.querySelector('.divider');
+        const container = document.querySelector('.container');
+        const leftColumn = document.querySelector('.left-column');
+        const rightColumn = document.querySelector('.right-column');
+        const toggleBtn = document.querySelector('.toggle-btn');
+
+        let isResizing = false;
+
+        divider.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResizing);
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            const containerRect = container.getBoundingClientRect();
+            const leftWidth = e.clientX - containerRect.left;
+            const rightWidth = containerRect.right - e.clientX - divider.offsetWidth;
+            
+            if (leftWidth > 300 && rightWidth > 0) {  // Ensure minimum widths
+                leftColumn.style.flex = `0 0 ${leftWidth}px`;
+                rightColumn.style.width = `${rightWidth}px`;
+            }
+        }
+
+        function stopResizing() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+        }
+
+        // Toggle right column
+        toggleBtn.addEventListener('click', () => {
+            rightColumn.classList.toggle('hidden');
+            toggleBtn.textContent = rightColumn.classList.contains('hidden') ? 'Show Right Column' : 'Hide Right Column';
+            
+            // Adjust the container layout
+            if (rightColumn.classList.contains('hidden')) {
+                leftColumn.style.flex = '1';
+                rightColumn.style.width = '0';
+                divider.style.display = 'none';  // Hide divider when right column is hidden
+            } else {
+                leftColumn.style.flex = '1';
+                rightColumn.style.width = '300px';
+                divider.style.display = 'block';  // Show divider when right column is visible
+            }
+        });
+
+        //
+
+        // Initial draw of split canvas
+        drawSplitCanvas();
+
+        function drawComparisonCircles(bigRadius, smallRadius, smallCount) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(canvas.width, canvas.height) / 2 - 40; // Increased padding
+            
+            const bigArea = Math.PI * bigRadius * bigRadius;
+            const smallTotalArea = Math.PI * smallRadius * smallRadius * smallCount;
+            
+            const bigScaledRadius = Math.sqrt(bigArea) * (maxRadius / Math.max(Math.sqrt(bigArea), Math.sqrt(smallTotalArea)));
+            const smallScaledRadius = Math.sqrt(smallTotalArea) * (maxRadius / Math.max(Math.sqrt(bigArea), Math.sqrt(smallTotalArea)));
+            
+            // Draw big pizza circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, bigScaledRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.fill();
+            ctx.strokeStyle = 'red';
+            ctx.stroke();
+            
+            // Draw small pizzas combined circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, smallScaledRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(0, 0, 255, 0.5)';
+            ctx.fill();
+            ctx.strokeStyle = 'blue';
+            ctx.stroke();
+            
+            // Add labels
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Big Pizza (${bigRadius}" radius)`, centerX, 30); // Moved to top
+            ctx.fillText(`${smallCount} Small Pizzas (${smallRadius}" radius each)`, centerX, canvas.height - 20); // Moved to bottom
+        }
+
+        let isComparing = false;
+
+        document.getElementById('compareBtn').addEventListener('click', function() {
+            const bigPizzaRadius = parseFloat(document.getElementById("number1").value);
+            const smallPizzaRadius = parseFloat(document.getElementById("number2").value);
+            const numberOfSmallPizzas = parseFloat(document.getElementById("number3").value);
+            
+            if (!isNaN(bigPizzaRadius) && !isNaN(smallPizzaRadius) && !isNaN(numberOfSmallPizzas)) {
+                isComparing = !isComparing;
+                this.classList.toggle('active');
+                this.textContent = isComparing ? 'Show Original View' : 'Compare Areas';
+                
+                if (isComparing) {
+                    drawComparisonCircles(bigPizzaRadius, smallPizzaRadius, numberOfSmallPizzas);
+                } else {
+                    const scale = calculateScale(bigPizzaRadius, smallPizzaRadius, numberOfSmallPizzas);
+                    drawSplitCanvas();
+                    drawBigPizza(bigPizzaRadius, scale);
+                    drawSmallPizzas(smallPizzaRadius, numberOfSmallPizzas, scale);
+                }
+            } else {
+                alert('Please enter valid values for all fields before comparing.');
+            }
+        });
+
+        function displayMath(bigRadius, smallRadius, smallCount) {
+            const bigArea = Math.PI * bigRadius * bigRadius;
+            const smallArea = Math.PI * smallRadius * smallRadius;
+            const totalSmallArea = smallArea * smallCount;
+            
+            const singlePizzaDiff = ((bigArea - smallArea) / smallArea) * 100;
+            const totalAreaDiff = ((bigArea - totalSmallArea) / totalSmallArea) * 100;
+
+            const rightColumnContent = document.querySelector('.right-column-content');
+            rightColumnContent.innerHTML = `
+                <h4>Pizza Area Calculations</h4>
+                <p>Big Pizza Area: ${bigArea.toFixed(2)} sq in</p>
+                <p>Small Pizza Area: ${smallArea.toFixed(2)} sq in</p>
+                <p>Difference: ${Math.abs(singlePizzaDiff).toFixed(2)}% ${singlePizzaDiff > 0 ? 'more' : 'less'}</p>
+                <p>Total Small Pizzas Area: ${totalSmallArea.toFixed(2)} sq in</p>
+                <p>Difference from Big Pizza: ${Math.abs(totalAreaDiff).toFixed(2)}% ${totalAreaDiff > 0 ? 'more' : 'less'}</p>
+            `;
+        }
+    </script>
+</body>
+</html>
